@@ -57,7 +57,14 @@ public class CashDesk {
             val item = entry.getKey();
             val price = pricing.get(item);
             val quantity = entry.getValue().size();
-            double cost = price * quantity;
+            double cost = 0.0;
+            for (val product : entry.getValue()) {
+                if (product.isWeighted()) {
+                    cost += price * (product.getWeight() / 1000);
+                } else {
+                    cost += price;
+                }
+            }
             total += cost;
             logger.info("{} paying {} of {} for {}$", name, quantity, item, friendlyDouble(cost));
         }

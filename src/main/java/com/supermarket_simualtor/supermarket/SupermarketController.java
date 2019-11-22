@@ -13,5 +13,7 @@ public interface SupermarketController {
 
     Product tryTakeProduct(String name) throws ProductNotFoundException;
 
+    void putProductBack(Product product);
+
     long getQuantityFor(String name) throws ProductNotFoundException;
 }

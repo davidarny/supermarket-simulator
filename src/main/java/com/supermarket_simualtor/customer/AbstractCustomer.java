@@ -1,6 +1,7 @@
 package com.supermarket_simualtor.customer;
 
 import com.supermarket_simualtor.basket.Basket;
+import com.supermarket_simualtor.product.NonWeightedTakeException;
 import com.supermarket_simualtor.random.CustomRandom;
 import com.supermarket_simualtor.supermarket.ProductNotFoundException;
 import com.supermarket_simualtor.supermarket.SupermarketController;
@@ -48,17 +49,73 @@ public abstract class AbstractCustomer implements Customer {
                     if (quantity == 0 || free == 0) {
                         continue;
                     }
-                    val size = quantity > 1 && free > 1 ? random.getRandomInRange(1, free) : 1;
-                    for (int i = 0; i < size; i++) {
-                        val product = supermarket.tryTakeProduct(item);
-                        basket.add(product);
-                    }
-                    logger.info("{} put {} of {} items to basket", getName(), size, item);
-                } catch (ProductNotFoundException e) {
+                    val operation = new AddToBasketOperation(supermarket, item, free, quantity).invoke();
+                    double size = operation.getSize();
+                    boolean weighted = operation.isWeighted();
+                    logResult(item, size, weighted);
+                } catch (ProductNotFoundException | NonWeightedTakeException e) {
                     logger.error(e.getMessage());
                     return;
                 }
             }
+        }
+    }
+
+    private void logResult(String item, double size, boolean weighted) {
+        if (weighted) {
+            logger.info("{} put {}g of {} to basket", getName(), friendlyDouble(size), item);
+        } else {
+            logger.info("{} put {} of {} items to basket", getName(), Math.round(size), item);
+        }
+    }
+
+    private String friendlyDouble(double size) {
+        return String.format("%.2f", size);
+    }
+
+    private class AddToBasketOperation {
+        private SupermarketController supermarket;
+        private String item;
+        private int free;
+        private long quantity;
+        private double size;
+        private boolean weighted;
+
+        AddToBasketOperation(SupermarketController supermarket, String item, int free, long quantity) {
+            this.supermarket = supermarket;
+            this.item = item;
+            this.free = free;
+            this.quantity = quantity;
+        }
+
+        double getSize() {
+            return size;
+        }
+
+        boolean isWeighted() {
+            return weighted;
+        }
+
+        AddToBasketOperation invoke() throws ProductNotFoundException, NonWeightedTakeException {
+            size = quantity > 1 && free > 1 ? random.getRandomInRange(1, free) : 1;
+            weighted = false;
+            var product = supermarket.tryTakeProduct(item);
+            if (product.isWeighted()) {
+                weighted = true;
+                val weight = random.getRandomInRange(product.getWeight() / 10, product.getWeight());
+                val rest = product.take(weight);
+                basket.add(product);
+                if (rest.getWeight() != 0) {
+                    supermarket.putProductBack(rest);
+                }
+                size = weight;
+                return this;
+            }
+            for (int i = 1; i < size; i++) {
+                product = supermarket.tryTakeProduct(item);
+                basket.add(product);
+            }
+            return this;
         }
     }
 }

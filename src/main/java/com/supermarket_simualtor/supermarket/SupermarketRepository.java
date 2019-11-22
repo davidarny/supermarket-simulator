@@ -47,7 +47,7 @@ public class SupermarketRepository {
             if (product == null) {
                 handleNotFound(name);
             }
-            takeProduct(name, product);
+            takeProduct(product);
             return product;
         } finally {
             lock.unlock();
@@ -75,11 +75,12 @@ public class SupermarketRepository {
         }
         val meta = waybill.get(name);
         val id = meta.ids.stream().min(Long::compareTo).orElseThrow();
-        val predicate = new Product(id, null, null);
+        val predicate = new Product(id);
         return searchProduct(predicate);
     }
 
-    private void takeProduct(String name, Product product) {
+    private void takeProduct(Product product) {
+        val name = product.getName();
         assortment.remove(product);
         val meta = waybill.get(name);
         meta.remove(product.getId());
@@ -96,22 +97,26 @@ public class SupermarketRepository {
     }
 
     private void addAll(List<Product> list) {
-        assortment.addAll(list);
-
         for (val product : list) {
-            val name = product.getName();
-            val id = (int) product.getId();
-
-            if (waybill.containsKey(name)) {
-                val meta = waybill.get(name);
-                meta.add(id);
-                continue;
-            }
-
-            val meta = new ProductMeta();
-            meta.add(id);
-            waybill.put(name, meta);
+            add(product);
         }
+    }
+
+    void add(Product product) {
+        assortment.add(product);
+
+        val name = product.getName();
+        val id = (int) product.getId();
+
+        if (waybill.containsKey(name)) {
+            val meta = waybill.get(name);
+            meta.add(id);
+            return;
+        }
+
+        val meta = new ProductMeta();
+        meta.add(id);
+        waybill.put(name, meta);
     }
 
     private void handleNotFound(String name) throws ProductNotFoundException {

@@ -20,6 +20,7 @@ public class CustomRandom extends Random {
         if (instance == null) {
             instance = new CustomRandom(System.currentTimeMillis());
         }
+        instance.setSeed(System.currentTimeMillis());
         return instance;
     }
 

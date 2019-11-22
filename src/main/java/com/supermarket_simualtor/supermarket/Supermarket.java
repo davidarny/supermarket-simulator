@@ -49,6 +49,11 @@ public class Supermarket implements SupermarketController, SupermarketAcceptor {
     }
 
     @Override
+    public void putProductBack(Product product) {
+        repository.add(product);
+    }
+
+    @Override
     public long getQuantityFor(String name) throws ProductNotFoundException {
         return repository.getQuantityFor(name);
     }

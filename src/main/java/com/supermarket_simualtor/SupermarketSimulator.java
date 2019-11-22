@@ -11,6 +11,7 @@ import com.supermarket_simualtor.random.CustomRandom;
 import com.supermarket_simualtor.supermarket.Supermarket;
 import com.supermarket_simualtor.supermarket.SupermarketAcceptor;
 import com.supermarket_simualtor.supermarket.SupermarketRepository;
+import lombok.Value;
 import lombok.val;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class SupermarketSimulator {
-    private static final int TIMEOUT = 60 * 1000;
+    private static final int TIMEOUT = 5 * 1000;
     private static final int SLEEP_TIMEOUT = 1000;
 
     private static final int MIN_ITEMS = 1000;
@@ -29,6 +30,9 @@ public class SupermarketSimulator {
 
     private static final double MIN_ITEM_PRICE = 0.25;
     private static final double MAX_ITEM_PRICE = 10.0;
+
+    private static final double MIN_WEIGHT = 100.0;
+    private static final double MAX_WEIGHT = 20000.0;
 
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass().getSimpleName());
     private static final CustomRandom random = CustomRandom.getInstance();
@@ -101,9 +105,9 @@ public class SupermarketSimulator {
 
     private static List<CashDesk> createCashDesks(Map<String, Double> pricing) {
         return Arrays.asList(
-                new CashDesk(0, pricing),
-                new CashDesk(1, pricing),
-                new CashDesk(2, pricing)
+            new CashDesk(0, pricing),
+            new CashDesk(1, pricing),
+            new CashDesk(2, pricing)
         );
     }
 
@@ -119,27 +123,39 @@ public class SupermarketSimulator {
         val products = new ArrayList<Product>();
         ProductPermissions allowed = customer -> true;
         ProductPermissions disallowed = customer -> customer.getAge() >= 18;
-        val meta = new HashMap<String, ProductPermissions>();
-        meta.put("Apple", allowed);
-        meta.put("Orange", allowed);
-        meta.put("Banana", allowed);
-        meta.put("Bread", allowed);
-        meta.put("Butter", allowed);
-        meta.put("Water", allowed);
-        meta.put("Salad", allowed);
-        meta.put("IceCream", allowed);
-        meta.put("Chocolate", allowed);
-        meta.put("Peanut", allowed);
-        meta.put("Beer", disallowed);
-        meta.put("Vodka", disallowed);
-        meta.put("Cigarettes", disallowed);
+        val meta = new HashMap<String, ProductPayload>();
+        meta.put("Apple", new ProductPayload(allowed, false));
+        meta.put("Orange", new ProductPayload(allowed, false));
+        meta.put("Banana", new ProductPayload(allowed, false));
+        meta.put("Bread", new ProductPayload(allowed, false));
+        meta.put("Butter", new ProductPayload(allowed, false));
+        meta.put("Water", new ProductPayload(allowed, false));
+        meta.put("Salad", new ProductPayload(allowed, false));
+        meta.put("IceCream", new ProductPayload(allowed, false));
+        meta.put("Chocolate", new ProductPayload(allowed, false));
+        meta.put("Peanut", new ProductPayload(allowed, false));
+        meta.put("Beer", new ProductPayload(disallowed, false));
+        meta.put("Vodka", new ProductPayload(disallowed, false));
+        meta.put("Cigarettes", new ProductPayload(disallowed, false));
+        meta.put("Rice", new ProductPayload(allowed, true));
+        meta.put("Nuts", new ProductPayload(allowed, true));
         val range = random.getRandomInRange(MIN_ITEMS, MAX_ITEMS);
         for (int i = 0; i < range; i++) {
             val index = random.getRandomInRange(0, meta.size() - 1);
             val key = new ArrayList<>(meta.keySet()).get(index);
-            val product = new Product(i, key, meta.get(key));
+            val weight = random.getRandomInRange(MIN_WEIGHT, MAX_WEIGHT);
+            val payload = meta.get(key);
+            val product = payload.weighted
+                ? new Product(i, key, weight, payload.permissions)
+                : new Product(i, key, payload.permissions);
             products.add(product);
         }
         return products;
+    }
+
+    @Value
+    private static class ProductPayload {
+        private final ProductPermissions permissions;
+        private final boolean weighted;
     }
 }
