@@ -11,6 +11,7 @@ import com.supermarket_simualtor.random.CustomRandom;
 import com.supermarket_simualtor.supermarket.Supermarket;
 import com.supermarket_simualtor.supermarket.SupermarketAcceptor;
 import com.supermarket_simualtor.supermarket.SupermarketRepository;
+import com.supermarket_simualtor.utils.StringUtils;
 import lombok.Value;
 import lombok.val;
 import org.slf4j.Logger;
@@ -98,7 +99,9 @@ public class SupermarketSimulator {
     private static Map<String, Double> createPricing(Set<String> assortment) {
         val map = new HashMap<String, Double>();
         for (val item : assortment) {
-            map.put(item, random.getRandomInRange(MIN_ITEM_PRICE, MAX_ITEM_PRICE));
+            val price = random.getRandomInRange(MIN_ITEM_PRICE, MAX_ITEM_PRICE);
+            logger.info("Selling {} for {}$ per unit", item, StringUtils.friendlyDouble(price));
+            map.put(item, price);
         }
         return map;
     }

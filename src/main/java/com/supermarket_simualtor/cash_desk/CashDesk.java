@@ -2,6 +2,7 @@ package com.supermarket_simualtor.cash_desk;
 
 import com.supermarket_simualtor.customer.Customer;
 import com.supermarket_simualtor.product.Product;
+import com.supermarket_simualtor.utils.StringUtils;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -43,12 +44,8 @@ public class CashDesk {
 
     private void logTotalCost(List<Product> products, String name, double total) {
         if (total > 0) {
-            logger.info("{} bought total {} of item for {}$", name, products.size(), friendlyDouble(total));
+            logger.info("{} bought total {} of item for {}$", name, products.size(), StringUtils.friendlyDouble(total));
         }
-    }
-
-    private String friendlyDouble(double total) {
-        return String.format("%.2f", total);
     }
 
     private double countTotalCost(List<Product> products, String name) {
@@ -66,7 +63,7 @@ public class CashDesk {
                 }
             }
             total += cost;
-            logger.info("{} paying {} of {} for {}$", name, quantity, item, friendlyDouble(cost));
+            logger.info("{} paying {} of {} for {}$", name, quantity, item, StringUtils.friendlyDouble(cost));
         }
         return total;
     }

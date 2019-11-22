@@ -5,6 +5,7 @@ import com.supermarket_simualtor.product.NonWeightedTakeException;
 import com.supermarket_simualtor.random.CustomRandom;
 import com.supermarket_simualtor.supermarket.ProductNotFoundException;
 import com.supermarket_simualtor.supermarket.SupermarketController;
+import com.supermarket_simualtor.utils.StringUtils;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -63,14 +64,10 @@ public abstract class AbstractCustomer implements Customer {
 
     private void logResult(String item, double size, boolean weighted) {
         if (weighted) {
-            logger.info("{} put {}g of {} to basket", getName(), friendlyDouble(size), item);
+            logger.info("{} put {}g of {} to basket", getName(), StringUtils.friendlyDouble(size), item);
         } else {
             logger.info("{} put {} of {} items to basket", getName(), Math.round(size), item);
         }
-    }
-
-    private String friendlyDouble(double size) {
-        return String.format("%.2f", size);
     }
 
     private class AddToBasketOperation {
