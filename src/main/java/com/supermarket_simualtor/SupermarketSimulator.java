@@ -8,6 +8,7 @@ import com.supermarket_simualtor.customer.RetiredCustomer;
 import com.supermarket_simualtor.product.Product;
 import com.supermarket_simualtor.product.ProductPermissions;
 import com.supermarket_simualtor.random.CustomRandom;
+import com.supermarket_simualtor.report.Report;
 import com.supermarket_simualtor.supermarket.Supermarket;
 import com.supermarket_simualtor.supermarket.SupermarketAcceptor;
 import com.supermarket_simualtor.supermarket.SupermarketRepository;
@@ -21,12 +22,14 @@ import java.lang.invoke.MethodHandles;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class SupermarketSimulator {
-    private static final int TIMEOUT = 5 * 1000;
-    private static final int SLEEP_TIMEOUT = 1000;
+    private static final int SECOND = 1000;
+    private static final int TIMEOUT = 60 * SECOND;
+    private static final int SLEEP_TIMEOUT = SECOND;
 
-    private static final int MIN_ITEMS = 1000;
+    private static final int MIN_ITEMS = 10000;
     private static final int MAX_ITEMS = MIN_ITEMS * 10;
 
     private static final double MIN_ITEM_PRICE = 0.25;
@@ -49,7 +52,8 @@ public class SupermarketSimulator {
 
         val repository = createRepository(products);
         val pricing = createPricing(repository.getAssortment());
-        val desks = createCashDesks(pricing);
+        val report = createReport();
+        val desks = createCashDesks(pricing, report);
         val supermarket = createSupermarket(desks, repository);
 
         val customers = createCustomers();
@@ -84,6 +88,8 @@ public class SupermarketSimulator {
 
         logger.debug("{} items in repository", repository.getCount());
 
+        logger.info("{}$ total income for {} seconds", report, TIMEOUT / SECOND);
+
         logger.info("<<< SIMULATION ENDED >>>");
     }
 
@@ -106,11 +112,16 @@ public class SupermarketSimulator {
         return map;
     }
 
-    private static List<CashDesk> createCashDesks(Map<String, Double> pricing) {
+    private static Report createReport() {
+        return new Report();
+    }
+
+    private static List<CashDesk> createCashDesks(Map<String, Double> pricing, Report report) {
+        val integer = new AtomicInteger();
         return Arrays.asList(
-            new CashDesk(0, pricing),
-            new CashDesk(1, pricing),
-            new CashDesk(2, pricing)
+            new CashDesk(integer.getAndIncrement(), pricing, report),
+            new CashDesk(integer.getAndIncrement(), pricing, report),
+            new CashDesk(integer.getAndIncrement(), pricing, report)
         );
     }
 

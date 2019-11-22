@@ -45,11 +45,8 @@ public class Product implements Comparable<Product> {
             throw new NonWeightedTakeException("Cannot take some of " + name);
         }
         try {
-            var next = this.weight - weight;
-            if (next < 0) {
-                next = 0;
-            }
-            return new Product(id, name, next, permissions);
+            assert this.weight - weight > 0;
+            return new Product(id, name, this.weight - weight, permissions);
         } finally {
             this.weight = weight;
         }

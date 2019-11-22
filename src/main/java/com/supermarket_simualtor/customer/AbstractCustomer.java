@@ -72,6 +72,8 @@ public abstract class AbstractCustomer implements Customer {
     }
 
     private class AddToBasketOperation {
+        private static final double THRESHOLD = 0.001;
+
         private SupermarketController supermarket;
         private String item;
         private int free;
@@ -103,7 +105,7 @@ public abstract class AbstractCustomer implements Customer {
                 val weight = random.getRandomInRange(product.getWeight() / 10, product.getWeight());
                 val rest = product.take(weight);
                 basket.add(product);
-                if (rest.getWeight() != 0) {
+                if (isZero(rest.getWeight())) {
                     supermarket.putProductBack(rest);
                 }
                 size = weight;
@@ -114,6 +116,10 @@ public abstract class AbstractCustomer implements Customer {
                 basket.add(product);
             }
             return this;
+        }
+
+        private boolean isZero(double value) {
+            return value >= -THRESHOLD && value <= THRESHOLD;
         }
     }
 }

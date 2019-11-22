@@ -2,6 +2,7 @@ package com.supermarket_simualtor.cash_desk;
 
 import com.supermarket_simualtor.customer.Customer;
 import com.supermarket_simualtor.product.Product;
+import com.supermarket_simualtor.report.Report;
 import com.supermarket_simualtor.utils.StringUtils;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,8 @@ public class CashDesk {
 
     private final Map<String, Double> pricing;
 
+    private final Report report;
+
     public void serveCustomer(@NotNull Customer customer) {
         try {
             lock.lock();
@@ -36,15 +39,10 @@ public class CashDesk {
             val disallowed = removeDisallowedForCustomer(customer, products);
             logDisallowed(name, disallowed);
             double total = countTotalCost(products, name);
+            report.addIncome(total);
             logTotalCost(products, name, total);
         } finally {
             lock.unlock();
-        }
-    }
-
-    private void logTotalCost(List<Product> products, String name, double total) {
-        if (total > 0 && logger.isInfoEnabled()) {
-            logger.info("{} bought total {} of item for {}$", name, products.size(), StringUtils.friendlyDouble(total));
         }
     }
 
@@ -63,16 +61,26 @@ public class CashDesk {
                 }
             }
             total += cost;
-            if (logger.isInfoEnabled()) {
-                logger.info("{} paying {} of {} for {}$", name, quantity, item, StringUtils.friendlyDouble(cost));
-            }
+            logPayment(name, item, quantity, cost);
         }
         return total;
+    }
+
+    private void logPayment(String name, String item, int quantity, double cost) {
+        if (logger.isInfoEnabled()) {
+            logger.info("{} paying {} of {} for {}$", name, quantity, item, StringUtils.friendlyDouble(cost));
+        }
     }
 
     private void logDisallowed(String name, Set<String> disallowed) {
         for (val product : disallowed) {
             logger.info("{} disallowed to take {}", name, product);
+        }
+    }
+
+    private void logTotalCost(List<Product> products, String name, double total) {
+        if (total > 0 && logger.isInfoEnabled()) {
+            logger.info("{} bought total {} of item for {}$", name, products.size(), StringUtils.friendlyDouble(total));
         }
     }
 
