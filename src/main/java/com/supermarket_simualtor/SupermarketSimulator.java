@@ -6,6 +6,7 @@ import com.supermarket_simualtor.customer.ChildCustomer;
 import com.supermarket_simualtor.customer.Customer;
 import com.supermarket_simualtor.customer.RetiredCustomer;
 import com.supermarket_simualtor.product.Product;
+import com.supermarket_simualtor.product.ProductPermissions;
 import com.supermarket_simualtor.random.CustomRandom;
 import com.supermarket_simualtor.supermarket.Supermarket;
 import com.supermarket_simualtor.supermarket.SupermarketAcceptor;
@@ -82,10 +83,10 @@ public class SupermarketSimulator {
     }
 
     private static List<Customer> createCustomers() {
-        val dasha = new AdultCustomer("Douglas Ellison");
-        val david = new AdultCustomer("Zackary Conrad");
-        val boy = new ChildCustomer("Kailee Miller");
-        val grandpa = new RetiredCustomer("Callie Lee");
+        val dasha = new AdultCustomer("Dasha", 20);
+        val david = new AdultCustomer("David", 22);
+        val boy = new ChildCustomer("Son", 14);
+        val grandpa = new RetiredCustomer("Mom", 55);
 
         return Arrays.asList(dasha, david, boy, grandpa);
     }
@@ -116,22 +117,27 @@ public class SupermarketSimulator {
 
     private static List<Product> createProducts() {
         val products = new ArrayList<Product>();
-        val names = Arrays.asList(
-                "Apple",
-                "Orange",
-                "Banana",
-                "Bread",
-                "Butter",
-                "Water",
-                "Salad",
-                "IceCream",
-                "Chocolate",
-                "Peanut"
-        );
+        ProductPermissions allowed = customer -> true;
+        ProductPermissions disallowed = customer -> customer.getAge() >= 18;
+        val meta = new HashMap<String, ProductPermissions>();
+        meta.put("Apple", allowed);
+        meta.put("Orange", allowed);
+        meta.put("Banana", allowed);
+        meta.put("Bread", allowed);
+        meta.put("Butter", allowed);
+        meta.put("Water", allowed);
+        meta.put("Salad", allowed);
+        meta.put("IceCream", allowed);
+        meta.put("Chocolate", allowed);
+        meta.put("Peanut", allowed);
+        meta.put("Beer", disallowed);
+        meta.put("Vodka", disallowed);
+        meta.put("Cigarettes", disallowed);
         val range = random.getRandomInRange(MIN_ITEMS, MAX_ITEMS);
         for (int i = 0; i < range; i++) {
-            val index = random.getRandomInRange(0, names.size() - 1);
-            val product = new Product(i, names.get(index));
+            val index = random.getRandomInRange(0, meta.size() - 1);
+            val key = new ArrayList<>(meta.keySet()).get(index);
+            val product = new Product(i, key, meta.get(key));
             products.add(product);
         }
         return products;

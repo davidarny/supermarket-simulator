@@ -52,7 +52,7 @@ public class SupermarketRepositoryTest {
 
     @Test
     public void getByName_sameProductsWithDifferentIds_productFound() throws ProductNotFoundException {
-        val repo = createRepository(Collections.singletonList(new Product(4, "Pepsi")));
+        val repo = createRepository(Collections.singletonList(new Product(4, "Pepsi", null)));
 
         val actual = repo.takeByName("Pepsi");
 
@@ -63,9 +63,9 @@ public class SupermarketRepositoryTest {
     @Test
     public void addAll_emptyRepo_nonEmptyRepo() {
         val repo = createEmptyRepository(Arrays.asList(
-                new Product(0, "Coca Cola"),
-                new Product(1, "Pepsi"),
-                new Product(2, "Sprite")
+            new Product(0, "Coca Cola", null),
+            new Product(1, "Pepsi", null),
+            new Product(2, "Sprite", null)
         ));
 
         assertEquals(3, repo.getCount());
@@ -74,9 +74,9 @@ public class SupermarketRepositoryTest {
     @Test
     public void addAll_nonEmptyRepo_appendToRepo() {
         val repo = createRepository(Arrays.asList(
-                new Product(4, "Lays"),
-                new Product(5, "Snickers"),
-                new Product(6, "Twix")
+            new Product(4, "Lays", null),
+            new Product(5, "Snickers", null),
+            new Product(6, "Twix", null)
         ));
 
         assertEquals(6, repo.getCount());
@@ -85,18 +85,18 @@ public class SupermarketRepositoryTest {
     @NotNull
     private SupermarketRepository createRepository() {
         return new SupermarketRepository(Arrays.asList(
-                new Product(0, "Coca Cola"),
-                new Product(1, "Pepsi"),
-                new Product(2, "Sprite")
+            new Product(0, "Coca Cola", null),
+            new Product(1, "Pepsi", null),
+            new Product(2, "Sprite", null)
         ));
     }
 
     @NotNull
     private SupermarketRepository createRepository(List<Product> products) {
         val list = new ArrayList<>(Arrays.asList(
-                new Product(0, "Coca Cola"),
-                new Product(1, "Pepsi"),
-                new Product(2, "Sprite")
+            new Product(0, "Coca Cola", null),
+            new Product(1, "Pepsi", null),
+            new Product(2, "Sprite", null)
         ));
         list.addAll(products);
         return new SupermarketRepository(list);

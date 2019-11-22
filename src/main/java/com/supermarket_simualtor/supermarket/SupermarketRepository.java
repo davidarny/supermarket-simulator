@@ -1,7 +1,6 @@
 package com.supermarket_simualtor.supermarket;
 
 import com.supermarket_simualtor.product.Product;
-import lombok.NonNull;
 import lombok.val;
 import org.jetbrains.annotations.Nullable;
 
@@ -74,9 +73,9 @@ public class SupermarketRepository {
         if (!waybill.containsKey(name)) {
             return null;
         }
-        @NonNull val meta = waybill.get(name);
+        val meta = waybill.get(name);
         val id = meta.ids.stream().min(Long::compareTo).orElseThrow();
-        val predicate = new Product(id, null);
+        val predicate = new Product(id, null, null);
         return searchProduct(predicate);
     }
 
@@ -104,7 +103,7 @@ public class SupermarketRepository {
             val id = (int) product.getId();
 
             if (waybill.containsKey(name)) {
-                @NonNull val meta = waybill.get(name);
+                val meta = waybill.get(name);
                 meta.add(id);
                 continue;
             }

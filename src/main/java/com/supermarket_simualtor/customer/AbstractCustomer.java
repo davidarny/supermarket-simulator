@@ -21,6 +21,9 @@ public abstract class AbstractCustomer implements Customer {
     private final String name;
 
     @Getter
+    final int age;
+
+    @Getter
     private final Basket basket = new Basket();
 
     @Override
