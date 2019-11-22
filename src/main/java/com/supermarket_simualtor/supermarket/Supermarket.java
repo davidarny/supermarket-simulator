@@ -32,7 +32,9 @@ public class Supermarket implements SupermarketController, SupermarketAcceptor {
     @Override
     public void accept(@NotNull Customer customer) {
         val date = new Date();
-        logger.info("{} visited {} at {}", customer.getName(), name, format.format(date));
+        if (logger.isInfoEnabled()) {
+            logger.info("{} visited {} at {}", customer.getName(), name, format.format(date));
+        }
         customer.visit(this);
         logger.info("{} leaving {}", customer.getName(), name);
 

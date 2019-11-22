@@ -43,7 +43,7 @@ public class CashDesk {
     }
 
     private void logTotalCost(List<Product> products, String name, double total) {
-        if (total > 0) {
+        if (total > 0 && logger.isInfoEnabled()) {
             logger.info("{} bought total {} of item for {}$", name, products.size(), StringUtils.friendlyDouble(total));
         }
     }
@@ -63,7 +63,9 @@ public class CashDesk {
                 }
             }
             total += cost;
-            logger.info("{} paying {} of {} for {}$", name, quantity, item, StringUtils.friendlyDouble(cost));
+            if (logger.isInfoEnabled()) {
+                logger.info("{} paying {} of {} for {}$", name, quantity, item, StringUtils.friendlyDouble(cost));
+            }
         }
         return total;
     }

@@ -63,9 +63,10 @@ public abstract class AbstractCustomer implements Customer {
     }
 
     private void logResult(String item, double size, boolean weighted) {
-        if (weighted) {
+        if (weighted && logger.isInfoEnabled()) {
             logger.info("{} put {}g of {} to basket", getName(), StringUtils.friendlyDouble(size), item);
-        } else {
+        }
+        if (!weighted) {
             logger.info("{} put {} of {} items to basket", getName(), Math.round(size), item);
         }
     }
