@@ -22,7 +22,7 @@ public class Basket {
         return list;
     }
 
-    public int freeCapacity() {
+    public int getFreeCapacity() {
         return MAX_CAPACITY - products.size();
     }
 }

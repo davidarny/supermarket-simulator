@@ -5,7 +5,9 @@ import com.supermarket_simualtor.customer.AdultCustomer;
 import com.supermarket_simualtor.customer.ChildCustomer;
 import com.supermarket_simualtor.customer.Customer;
 import com.supermarket_simualtor.customer.RetiredCustomer;
-import com.supermarket_simualtor.customer.wallet.Wallet;
+import com.supermarket_simualtor.customer.storage.Bonuses;
+import com.supermarket_simualtor.customer.storage.Card;
+import com.supermarket_simualtor.customer.storage.Wallet;
 import com.supermarket_simualtor.product.Product;
 import com.supermarket_simualtor.product.ProductDiscounts;
 import com.supermarket_simualtor.product.ProductPermissions;
@@ -17,7 +19,6 @@ import com.supermarket_simualtor.supermarket.SupermarketRepository;
 import com.supermarket_simualtor.utils.StringUtils;
 import lombok.Value;
 import lombok.val;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,8 +29,8 @@ import java.util.concurrent.TimeUnit;
 
 public class SupermarketSimulator {
     private static final int SECOND = 1000;
-    private static final int TIMEOUT = 60 * SECOND;
-    private static final int SLEEP_TIMEOUT = SECOND;
+    private static final int TIMEOUT = 60 * SECOND; // 60s
+    private static final int SLEEP_TIMEOUT = SECOND; // 1s
 
     private static final int MIN_ITEMS = 10000;
     private static final int MAX_ITEMS = MIN_ITEMS * 10;
@@ -37,11 +38,11 @@ public class SupermarketSimulator {
     private static final double MIN_ITEM_PRICE = 0.25;
     private static final double MAX_ITEM_PRICE = 10.0;
 
-    private static final double MIN_WEIGHT = 100.0;
-    private static final double MAX_WEIGHT = 20000.0;
+    private static final double MIN_WEIGHT = 100.0; // 100g
+    private static final double MAX_WEIGHT = 20000.0; // 20kg
 
-    private static final double MIN_WALLET_TOTAL = 1000.0;
-    private static final double MAX_WALLET_TOTAL = 20000.0;
+    private static final double MIN_MONEY_PER_CUSTOMER = 1000.0;
+    private static final double MAX_MONEY_PER_CUSTOMER = 10000.0;
 
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass().getSimpleName());
     private static final CustomRandom random = CustomRandom.getInstance();
@@ -99,17 +100,26 @@ public class SupermarketSimulator {
     }
 
     private static List<Customer> createCustomers() {
-        val dasha = new AdultCustomer("Dasha", 20, createWallet());
-        val david = new AdultCustomer("David", 22, createWallet());
-        val boy = new ChildCustomer("Son", 14, createWallet());
-        val grandpa = new RetiredCustomer("Mom", 55, createWallet());
+        val dasha = new AdultCustomer("Dasha", 20, createWallet(), createCard(), createBonuses());
+        val david = new AdultCustomer("David", 22, createWallet(), createCard(), createBonuses());
+        val boy = new ChildCustomer("Son", 14, createWallet(), createCard(), createBonuses());
+        val grandpa = new RetiredCustomer("Mom", 55, createWallet(), createCard(), createBonuses());
 
         return Arrays.asList(dasha, david, boy, grandpa);
     }
 
-    @NotNull
     private static Wallet createWallet() {
-        return new Wallet(random.getRandomInRange(MIN_WALLET_TOTAL, MAX_WALLET_TOTAL), 0.0);
+        double total = random.getRandomInRange(MIN_MONEY_PER_CUSTOMER, MAX_MONEY_PER_CUSTOMER);
+        return new Wallet(total);
+    }
+
+    private static Card createCard() {
+        double total = random.getRandomInRange(MIN_MONEY_PER_CUSTOMER, MAX_MONEY_PER_CUSTOMER);
+        return new Card(total);
+    }
+
+    private static Bonuses createBonuses() {
+        return new Bonuses(0.0);
     }
 
     private static Map<String, Double> createPricing(Set<String> assortment) {
@@ -177,7 +187,7 @@ public class SupermarketSimulator {
                 return 0;
             }
         };
-        ProductDiscounts noDiscount20Bonuses = new ProductDiscounts() {
+        ProductDiscounts noDiscountWithBonuses = new ProductDiscounts() {
             @Override
             public double discountForRetired(Customer customer) {
                 return 1.0;
@@ -185,14 +195,14 @@ public class SupermarketSimulator {
 
             @Override
             public double applyBonuses() {
-                return 20.0;
+                return 0.5;
             }
         };
 
         // meta information
         val meta = new HashMap<String, MetaInfo>();
-        meta.put("Apple", new MetaInfo(allowedForAll, noDiscount20Bonuses, false));
-        meta.put("Orange", new MetaInfo(allowedForAll, noDiscount20Bonuses, false));
+        meta.put("Apple", new MetaInfo(allowedForAll, noDiscountWithBonuses, false));
+        meta.put("Orange", new MetaInfo(allowedForAll, noDiscountWithBonuses, false));
         meta.put("Banana", new MetaInfo(allowedForAll, noDiscountNoBonuses, false));
         meta.put("Bread", new MetaInfo(allowedForAll, discountForRetiredNoBonuses, false));
         meta.put("Butter", new MetaInfo(allowedForAll, noDiscountNoBonuses, false));
@@ -203,7 +213,7 @@ public class SupermarketSimulator {
         meta.put("Peanut", new MetaInfo(allowedForAll, noDiscountNoBonuses, false));
         meta.put("Beer", new MetaInfo(allowedForAdult, noDiscountNoBonuses, false));
         meta.put("Vodka", new MetaInfo(allowedForAdult, noDiscountNoBonuses, false));
-        meta.put("Cigarettes", new MetaInfo(allowedForAdult, noDiscount20Bonuses, false));
+        meta.put("Cigarettes", new MetaInfo(allowedForAdult, noDiscountWithBonuses, false));
         meta.put("Rice", new MetaInfo(allowedForAll, noDiscountNoBonuses, true));
         meta.put("Nuts", new MetaInfo(allowedForAll, noDiscountNoBonuses, true));
 

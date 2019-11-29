@@ -9,7 +9,7 @@ public interface Customer {
 
     Basket getBasket();
 
-    double payForBill(Bill bill);
+    boolean payForBill(Bill bill);
 
     boolean isRetired();
 

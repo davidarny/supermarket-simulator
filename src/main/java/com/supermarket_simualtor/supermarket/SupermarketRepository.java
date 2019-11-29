@@ -5,70 +5,50 @@ import lombok.val;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.SynchronousQueue;
 import java.util.stream.Collectors;
 
 public class SupermarketRepository {
     private final ConcurrentSkipListSet<Product> assortment = new ConcurrentSkipListSet<>();
     private final ConcurrentHashMap<String, MetaInfo> waybill = new ConcurrentHashMap<>();
 
-    private final ReentrantLock lock = new ReentrantLock();
-
     public SupermarketRepository(List<Product> products) {
         addAll(products);
     }
 
-    public int getCount() {
-        try {
-            lock.lock();
-            return assortment.size();
-        } finally {
-            lock.unlock();
-        }
+    public synchronized int getCount() {
+        return assortment.size();
     }
 
-    public Set<String> getAssortment() {
-        try {
-            lock.lock();
-            return assortment.stream().map(Product::getName).collect(Collectors.toSet());
-        } finally {
-            lock.unlock();
-        }
+    public synchronized Set<String> getAssortment() {
+        return assortment.stream().map(Product::getName).collect(Collectors.toSet());
     }
 
-    Product takeByName(String name) throws ProductNotFoundException {
-        try {
-            lock.lock();
-            val product = getByName(name);
-            if (product == null) {
-                handleNotFound(name);
-            }
-            takeProduct(product);
-            return product;
-        } finally {
-            lock.unlock();
+    synchronized Product takeByName(String name) throws ProductNotFoundException {
+        val product = getByName(name);
+        if (product == null) {
+            handleNotFound(name);
         }
+        takeProduct(product);
+        return product;
     }
 
-    long getQuantityFor(String name) throws ProductNotFoundException {
-        try {
-            lock.lock();
-            val product = getByName(name);
-            if (product == null) {
-                handleNotFound(name);
-            }
-            val meta = waybill.get(product.getName());
-            return meta.ids.size();
-        } finally {
-            lock.unlock();
+    synchronized long getQuantityFor(String name) throws ProductNotFoundException {
+        val product = getByName(name);
+        if (product == null) {
+            handleNotFound(name);
         }
+        val meta = waybill.get(product.getName());
+        return meta.ids.size();
     }
 
-    void add(Product product) {
+    synchronized void add(Product product) {
         assortment.add(product);
 
         val name = product.getName();
@@ -91,7 +71,9 @@ public class SupermarketRepository {
             return null;
         }
         val meta = waybill.get(name);
-        val id = meta.ids.stream().min(Long::compareTo).orElseThrow();
+        val id = meta.ids.get(0);
+        assert id != null;
+        meta.ids.remove(0);
         val predicate = new Product(id);
         return searchProduct(predicate);
     }
@@ -125,7 +107,7 @@ public class SupermarketRepository {
 
 
     private static class MetaInfo {
-        private final List<Long> ids = new ArrayList<>();
+        private final List<Long> ids = Collections.synchronizedList(new ArrayList<>());
 
         void add(long id) {
             ids.add(id);

@@ -46,7 +46,7 @@ public class Product implements Comparable<Product>, ProductDiscounts, ProductPe
         this.discounts = discounts;
     }
 
-    public Product take(double weight) throws NonWeightedTakeException {
+    public synchronized Product take(double weight) throws NonWeightedTakeException {
         if (!weighted) {
             throw new NonWeightedTakeException("Cannot take some of " + name);
         }
@@ -57,7 +57,7 @@ public class Product implements Comparable<Product>, ProductDiscounts, ProductPe
     }
 
     @Override
-    public int compareTo(@NotNull Product other) {
+    public synchronized int compareTo(@NotNull Product other) {
         return Integer.compare((int) id, (int) other.id);
     }
 

@@ -4,6 +4,7 @@ import com.supermarket_simualtor.bill.Bill;
 import com.supermarket_simualtor.customer.Customer;
 import com.supermarket_simualtor.product.Product;
 import com.supermarket_simualtor.report.Report;
+import com.supermarket_simualtor.supermarket.SupermarketController;
 import com.supermarket_simualtor.utils.StringUtils;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -17,13 +18,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class CashDesk {
     private final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass().getSimpleName());
-    private final ReentrantLock lock = new ReentrantLock();
 
     @Getter
     private final long id;
@@ -32,41 +31,47 @@ public class CashDesk {
 
     private final Report report;
 
-    public void serveCustomer(@NotNull Customer customer) {
-        try {
-            lock.lock();
-            val products = customer.getBasket().takeAll();
-            val name = customer.getName();
-            val disallowed = removeDisallowedForCustomer(customer, products);
-            logDisallowed(name, disallowed);
-            val bill = countTotalCost(products, customer);
-            customer.payForBill(bill);
-            report.addIncome(bill.getTotal());
-            logTotalCost(products, name, bill.getTotal());
-        } finally {
-            lock.unlock();
+    public synchronized void serveCustomer(Customer customer, SupermarketController supermarket) {
+        val products = customer.getBasket().takeAll();
+        val name = customer.getName();
+        val disallowed = removeDisallowedForCustomer(customer, products);
+        logDisallowed(name, disallowed);
+        val bill = countTotalCost(products, customer);
+        val success = customer.payForBill(bill);
+        if (!success) {
+            for (val product : products) {
+                supermarket.putProductBack(product);
+            }
         }
+        report.addIncome(bill.getTotal());
+        logTotalCost(products, name, bill.getTotal());
     }
 
     private Bill countTotalCost(List<Product> products, Customer customer) {
-        double total = 0;
-        double bonuses = 0;
-        for (val entry : products.stream().collect(Collectors.groupingBy(Product::getName)).entrySet()) {
+        var total = 0.0;
+        var bonuses = 0.0;
+        for (val entry : products.stream().collect(Collectors.groupingBy(Product::getName)).entrySet()) { // group by name
             val item = entry.getKey();
             val price = pricing.get(item);
             val quantity = entry.getValue().size();
-            double cost = 0.0;
+            var cost = 0.0;
+            var weight = 0.0;
             for (val product : entry.getValue()) {
-                double discount = product.discountForRetired(customer);
+                val discount = product.discountForRetired(customer);
                 bonuses += product.applyBonuses();
                 if (product.isWeighted()) {
+                    weight += product.getWeight();
                     cost += discount * price * (product.getWeight() / 1000);
                 } else {
                     cost += discount * price;
                 }
             }
             total += cost;
-            logPayment(customer.getName(), item, quantity, cost);
+            if (entry.getValue().stream().allMatch(Product::isWeighted)) { // weighted product
+                logPayment(customer.getName(), item, weight, cost);
+            } else { // non-weighted product
+                logPayment(customer.getName(), item, quantity, cost);
+            }
         }
         return new Bill(total, bonuses);
     }
@@ -74,6 +79,18 @@ public class CashDesk {
     private void logPayment(String name, String item, int quantity, double cost) {
         if (logger.isInfoEnabled()) {
             logger.info("{} paying {} of {} for {}$", name, quantity, item, StringUtils.friendlyDouble(cost));
+        }
+    }
+
+    private void logPayment(String name, String item, double weight, double cost) {
+        if (logger.isInfoEnabled()) {
+            logger.info(
+                "{} paying {}g of {} for {}$",
+                name,
+                StringUtils.friendlyDouble(weight),
+                item,
+                StringUtils.friendlyDouble(cost)
+            );
         }
     }
 
