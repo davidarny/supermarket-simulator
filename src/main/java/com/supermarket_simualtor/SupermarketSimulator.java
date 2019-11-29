@@ -6,6 +6,7 @@ import com.supermarket_simualtor.customer.ChildCustomer;
 import com.supermarket_simualtor.customer.Customer;
 import com.supermarket_simualtor.customer.RetiredCustomer;
 import com.supermarket_simualtor.product.Product;
+import com.supermarket_simualtor.product.ProductDiscounts;
 import com.supermarket_simualtor.product.ProductPermissions;
 import com.supermarket_simualtor.random.CustomRandom;
 import com.supermarket_simualtor.report.Report;
@@ -135,24 +136,26 @@ public class SupermarketSimulator {
 
     private static List<Product> createProducts() {
         val products = new ArrayList<Product>();
-        ProductPermissions allowed = customer -> true;
-        ProductPermissions disallowed = customer -> customer.getAge() >= 18;
+        ProductPermissions allowedForAll = customer -> true;
+        ProductPermissions allowedForAdult = Customer::isAdult;
+        ProductDiscounts noDiscount = customer -> 1.0;
+        ProductDiscounts discountForRetired = customer -> customer.isRetired() ? 0.8 : 1.0;
         val meta = new HashMap<String, ProductPayload>();
-        meta.put("Apple", new ProductPayload(allowed, false));
-        meta.put("Orange", new ProductPayload(allowed, false));
-        meta.put("Banana", new ProductPayload(allowed, false));
-        meta.put("Bread", new ProductPayload(allowed, false));
-        meta.put("Butter", new ProductPayload(allowed, false));
-        meta.put("Water", new ProductPayload(allowed, false));
-        meta.put("Salad", new ProductPayload(allowed, false));
-        meta.put("IceCream", new ProductPayload(allowed, false));
-        meta.put("Chocolate", new ProductPayload(allowed, false));
-        meta.put("Peanut", new ProductPayload(allowed, false));
-        meta.put("Beer", new ProductPayload(disallowed, false));
-        meta.put("Vodka", new ProductPayload(disallowed, false));
-        meta.put("Cigarettes", new ProductPayload(disallowed, false));
-        meta.put("Rice", new ProductPayload(allowed, true));
-        meta.put("Nuts", new ProductPayload(allowed, true));
+        meta.put("Apple", new ProductPayload(allowedForAll, noDiscount, false));
+        meta.put("Orange", new ProductPayload(allowedForAll, noDiscount, false));
+        meta.put("Banana", new ProductPayload(allowedForAll, noDiscount, false));
+        meta.put("Bread", new ProductPayload(allowedForAll, discountForRetired, false));
+        meta.put("Butter", new ProductPayload(allowedForAll, noDiscount, false));
+        meta.put("Water", new ProductPayload(allowedForAll, discountForRetired, false));
+        meta.put("Salad", new ProductPayload(allowedForAll, noDiscount, false));
+        meta.put("IceCream", new ProductPayload(allowedForAll, noDiscount, false));
+        meta.put("Chocolate", new ProductPayload(allowedForAll, noDiscount, false));
+        meta.put("Peanut", new ProductPayload(allowedForAll, noDiscount, false));
+        meta.put("Beer", new ProductPayload(allowedForAdult, noDiscount, false));
+        meta.put("Vodka", new ProductPayload(allowedForAdult, noDiscount, false));
+        meta.put("Cigarettes", new ProductPayload(allowedForAdult, noDiscount, false));
+        meta.put("Rice", new ProductPayload(allowedForAll, noDiscount, true));
+        meta.put("Nuts", new ProductPayload(allowedForAll, noDiscount, true));
         val range = random.getRandomInRange(MIN_ITEMS, MAX_ITEMS);
         for (int i = 0; i < range; i++) {
             val index = random.getRandomInRange(0, meta.size() - 1);
@@ -160,8 +163,8 @@ public class SupermarketSimulator {
             val weight = random.getRandomInRange(MIN_WEIGHT, MAX_WEIGHT);
             val payload = meta.get(key);
             val product = payload.weighted
-                ? new Product(i, key, weight, payload.permissions)
-                : new Product(i, key, payload.permissions);
+                ? new Product(i, key, weight, payload.permissions, payload.discounts)
+                : new Product(i, key, payload.permissions, payload.discounts);
             products.add(product);
         }
         return products;
@@ -170,6 +173,7 @@ public class SupermarketSimulator {
     @Value
     private static class ProductPayload {
         private final ProductPermissions permissions;
+        private final ProductDiscounts discounts;
         private final boolean weighted;
     }
 }

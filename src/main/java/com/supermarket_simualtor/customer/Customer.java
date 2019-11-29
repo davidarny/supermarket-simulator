@@ -6,9 +6,13 @@ import com.supermarket_simualtor.supermarket.SupermarketController;
 public interface Customer {
     String getName();
 
-    int getAge();
-
     Basket getBasket();
+
+    boolean isRetired();
+
+    boolean isChild();
+
+    boolean isAdult();
 
     void visit(SupermarketController supermarket);
 }

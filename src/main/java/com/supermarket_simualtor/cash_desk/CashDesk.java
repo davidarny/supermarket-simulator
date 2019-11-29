@@ -38,7 +38,7 @@ public class CashDesk {
             val name = customer.getName();
             val disallowed = removeDisallowedForCustomer(customer, products);
             logDisallowed(name, disallowed);
-            double total = countTotalCost(products, name);
+            double total = countTotalCost(products, customer);
             report.addIncome(total);
             logTotalCost(products, name, total);
         } finally {
@@ -46,7 +46,7 @@ public class CashDesk {
         }
     }
 
-    private double countTotalCost(List<Product> products, String name) {
+    private double countTotalCost(List<Product> products, Customer customer) {
         double total = 0;
         for (val entry : products.stream().collect(Collectors.groupingBy(Product::getName)).entrySet()) {
             val item = entry.getKey();
@@ -54,14 +54,15 @@ public class CashDesk {
             val quantity = entry.getValue().size();
             double cost = 0.0;
             for (val product : entry.getValue()) {
+                double discount = product.discountForRetired(customer);
                 if (product.isWeighted()) {
-                    cost += price * (product.getWeight() / 1000);
+                    cost += discount * price * (product.getWeight() / 1000);
                 } else {
-                    cost += price;
+                    cost += discount * price;
                 }
             }
             total += cost;
-            logPayment(name, item, quantity, cost);
+            logPayment(customer.getName(), item, quantity, cost);
         }
         return total;
     }
