@@ -1,5 +1,6 @@
 package com.supermarket_simualtor.cash_desk;
 
+import com.supermarket_simualtor.bill.Bill;
 import com.supermarket_simualtor.customer.Customer;
 import com.supermarket_simualtor.product.Product;
 import com.supermarket_simualtor.report.Report;
@@ -38,16 +39,18 @@ public class CashDesk {
             val name = customer.getName();
             val disallowed = removeDisallowedForCustomer(customer, products);
             logDisallowed(name, disallowed);
-            double total = countTotalCost(products, customer);
-            report.addIncome(total);
-            logTotalCost(products, name, total);
+            val bill = countTotalCost(products, customer);
+            customer.payForBill(bill);
+            report.addIncome(bill.getTotal());
+            logTotalCost(products, name, bill.getTotal());
         } finally {
             lock.unlock();
         }
     }
 
-    private double countTotalCost(List<Product> products, Customer customer) {
+    private Bill countTotalCost(List<Product> products, Customer customer) {
         double total = 0;
+        double bonuses = 0;
         for (val entry : products.stream().collect(Collectors.groupingBy(Product::getName)).entrySet()) {
             val item = entry.getKey();
             val price = pricing.get(item);
@@ -55,6 +58,7 @@ public class CashDesk {
             double cost = 0.0;
             for (val product : entry.getValue()) {
                 double discount = product.discountForRetired(customer);
+                bonuses += product.applyBonuses();
                 if (product.isWeighted()) {
                     cost += discount * price * (product.getWeight() / 1000);
                 } else {
@@ -64,7 +68,7 @@ public class CashDesk {
             total += cost;
             logPayment(customer.getName(), item, quantity, cost);
         }
-        return total;
+        return new Bill(total, bonuses);
     }
 
     private void logPayment(String name, String item, int quantity, double cost) {

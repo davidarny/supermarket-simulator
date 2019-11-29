@@ -1,6 +1,8 @@
 package com.supermarket_simualtor.customer;
 
 import com.supermarket_simualtor.basket.Basket;
+import com.supermarket_simualtor.bill.Bill;
+import com.supermarket_simualtor.customer.wallet.Wallet;
 import com.supermarket_simualtor.product.NonWeightedTakeException;
 import com.supermarket_simualtor.random.CustomRandom;
 import com.supermarket_simualtor.supermarket.ProductNotFoundException;
@@ -25,6 +27,8 @@ public abstract class AbstractCustomer implements Customer {
     @Getter
     final int age;
 
+    private final Wallet wallet;
+
     @Getter
     private final Basket basket = new Basket();
 
@@ -34,26 +38,53 @@ public abstract class AbstractCustomer implements Customer {
         payForProducts(supermarket);
     }
 
+    @Override
+    public double payForBill(Bill bill) {
+        val total = bill.getTotal();
+        val payingWithBonuses = random.nextBoolean();
+        if (payingWithBonuses) {
+            wallet.payWithCashAndBonuses(total);
+        } else {
+            wallet.payWithCash(total);
+        }
+        double bonuses = bill.getBonuses();
+        if (logger.isInfoEnabled()) {
+            logger.info("{} got {} bonuses", getName(), StringUtils.friendlyDouble(bonuses));
+        }
+        wallet.addBonuses(bonuses);
+        double rest = wallet.getTotal();
+        if (logger.isInfoEnabled()) {
+            logger.info(
+                "{} has total {}$ and {} bonuses in wallet",
+                getName(),
+                StringUtils.friendlyDouble(rest),
+                StringUtils.friendlyDouble(wallet.getBonuses())
+            );
+        }
+        return rest;
+    }
+
     private void payForProducts(SupermarketController supermarket) {
         val desk = random.getRandomFor(supermarket.getDesks());
         logger.info("{} going to desk {}", name, desk.getId());
         desk.serveCustomer(this);
+
     }
 
     private void tryTakeProduct(SupermarketController supermarket) {
-        for (val item : supermarket.getAssortment()) {
+        for (val product : supermarket.getAssortment()) {
             val taking = random.nextBoolean();
             if (taking) {
                 try {
                     val free = basket.freeCapacity();
-                    val quantity = supermarket.getQuantityFor(item);
+                    var quantity = supermarket.getQuantityFor(product);
                     if (quantity == 0 || free == 0) {
                         continue;
                     }
-                    val operation = new AddToBasketOperation(supermarket, item, free, quantity).invoke();
+                    val operation = new AddToBasketOperation(supermarket, product, free, quantity).invoke();
                     double size = operation.getSize();
                     boolean weighted = operation.isWeighted();
-                    logResult(item, size, weighted);
+                    logResult(product, size, weighted);
                 } catch (ProductNotFoundException | NonWeightedTakeException e) {
                     logger.error(e.getMessage());
                     return;
@@ -97,12 +128,20 @@ public abstract class AbstractCustomer implements Customer {
         }
 
         AddToBasketOperation invoke() throws ProductNotFoundException, NonWeightedTakeException {
-            size = quantity > 1 && free > 1 ? random.getRandomInRange(1, free) : 1;
             weighted = false;
             var product = supermarket.tryTakeProduct(item);
+            val price = supermarket.getPricing().get(product.getName());
             if (product.isWeighted()) {
                 weighted = true;
-                val weight = random.getRandomInRange(product.getWeight() / 10, product.getWeight());
+                var weight = random.getRandomInRange(product.getWeight() / 10, product.getWeight());
+                val cost = price * (weight / 1000); // g to kg
+                if (!wallet.hasEnoughCash(cost)) {
+                    assert cost > wallet.getTotal();
+                    val diff = cost - wallet.getTotal();
+                    val subtract = diff / price;
+                    assert subtract > 0;
+                    weight -= subtract;
+                }
                 val rest = product.take(weight);
                 basket.add(product);
                 if (isZero(rest.getWeight())) {
@@ -110,6 +149,15 @@ public abstract class AbstractCustomer implements Customer {
                 }
                 size = weight;
                 return this;
+            }
+            size = quantity > 1 && free > 1 ? random.getRandomInRange(1, free) : 1;
+            val cost = price * size;
+            if (!wallet.hasEnoughCash(cost)) {
+                assert cost > wallet.getTotal();
+                val diff = cost - wallet.getTotal();
+                val subtract = Math.round(diff / price);
+                assert subtract > 0;
+                size -= subtract;
             }
             for (int i = 1; i < size; i++) {
                 product = supermarket.tryTakeProduct(item);

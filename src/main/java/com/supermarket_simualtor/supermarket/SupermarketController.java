@@ -4,10 +4,13 @@ import com.supermarket_simualtor.cash_desk.CashDesk;
 import com.supermarket_simualtor.product.Product;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface SupermarketController {
     Set<String> getAssortment();
+
+    Map<String, Double> getPricing();
 
     List<CashDesk> getDesks();
 

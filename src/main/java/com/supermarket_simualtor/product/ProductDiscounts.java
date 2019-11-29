@@ -4,4 +4,6 @@ import com.supermarket_simualtor.customer.Customer;
 
 public interface ProductDiscounts {
     double discountForRetired(Customer customer);
+
+    double applyBonuses();
 }

@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 public class SupermarketRepository {
     private final ConcurrentSkipListSet<Product> assortment = new ConcurrentSkipListSet<>();
-    private final ConcurrentHashMap<String, ProductMeta> waybill = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, MetaInfo> waybill = new ConcurrentHashMap<>();
 
     private final ReentrantLock lock = new ReentrantLock();
 
@@ -68,6 +68,23 @@ public class SupermarketRepository {
         }
     }
 
+    void add(Product product) {
+        assortment.add(product);
+
+        val name = product.getName();
+        val id = (int) product.getId();
+
+        if (waybill.containsKey(name)) {
+            val meta = waybill.get(name);
+            meta.add(id);
+            return;
+        }
+
+        val meta = new MetaInfo();
+        meta.add(id);
+        waybill.put(name, meta);
+    }
+
     @Nullable
     private Product getByName(String name) {
         if (!waybill.containsKey(name)) {
@@ -102,29 +119,12 @@ public class SupermarketRepository {
         }
     }
 
-    void add(Product product) {
-        assortment.add(product);
-
-        val name = product.getName();
-        val id = (int) product.getId();
-
-        if (waybill.containsKey(name)) {
-            val meta = waybill.get(name);
-            meta.add(id);
-            return;
-        }
-
-        val meta = new ProductMeta();
-        meta.add(id);
-        waybill.put(name, meta);
-    }
-
     private void handleNotFound(String name) throws ProductNotFoundException {
         throw new ProductNotFoundException("Product with name " + name + " not found");
     }
 
 
-    private static class ProductMeta {
+    private static class MetaInfo {
         private final List<Long> ids = new ArrayList<>();
 
         void add(long id) {

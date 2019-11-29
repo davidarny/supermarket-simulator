@@ -1,8 +1,10 @@
 package com.supermarket_simualtor.customer;
 
+import com.supermarket_simualtor.customer.wallet.Wallet;
+
 public class AdultCustomer extends AbstractCustomer {
-    public AdultCustomer(String name, int age) {
-        super(name, age);
+    public AdultCustomer(String name, int age, Wallet wallet) {
+        super(name, age, wallet);
     }
 
     @Override

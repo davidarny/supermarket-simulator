@@ -5,6 +5,7 @@ import com.supermarket_simualtor.customer.AdultCustomer;
 import com.supermarket_simualtor.customer.ChildCustomer;
 import com.supermarket_simualtor.customer.Customer;
 import com.supermarket_simualtor.customer.RetiredCustomer;
+import com.supermarket_simualtor.customer.wallet.Wallet;
 import com.supermarket_simualtor.product.Product;
 import com.supermarket_simualtor.product.ProductDiscounts;
 import com.supermarket_simualtor.product.ProductPermissions;
@@ -16,6 +17,7 @@ import com.supermarket_simualtor.supermarket.SupermarketRepository;
 import com.supermarket_simualtor.utils.StringUtils;
 import lombok.Value;
 import lombok.val;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +25,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class SupermarketSimulator {
     private static final int SECOND = 1000;
@@ -38,6 +39,9 @@ public class SupermarketSimulator {
 
     private static final double MIN_WEIGHT = 100.0;
     private static final double MAX_WEIGHT = 20000.0;
+
+    private static final double MIN_WALLET_TOTAL = 1000.0;
+    private static final double MAX_WALLET_TOTAL = 20000.0;
 
     private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass().getSimpleName());
     private static final CustomRandom random = CustomRandom.getInstance();
@@ -55,7 +59,7 @@ public class SupermarketSimulator {
         val pricing = createPricing(repository.getAssortment());
         val report = createReport();
         val desks = createCashDesks(pricing, report);
-        val supermarket = createSupermarket(desks, repository);
+        val supermarket = createSupermarket(pricing, desks, repository);
 
         val customers = createCustomers();
 
@@ -95,12 +99,17 @@ public class SupermarketSimulator {
     }
 
     private static List<Customer> createCustomers() {
-        val dasha = new AdultCustomer("Dasha", 20);
-        val david = new AdultCustomer("David", 22);
-        val boy = new ChildCustomer("Son", 14);
-        val grandpa = new RetiredCustomer("Mom", 55);
+        val dasha = new AdultCustomer("Dasha", 20, createWallet());
+        val david = new AdultCustomer("David", 22, createWallet());
+        val boy = new ChildCustomer("Son", 14, createWallet());
+        val grandpa = new RetiredCustomer("Mom", 55, createWallet());
 
         return Arrays.asList(dasha, david, boy, grandpa);
+    }
+
+    @NotNull
+    private static Wallet createWallet() {
+        return new Wallet(random.getRandomInRange(MIN_WALLET_TOTAL, MAX_WALLET_TOTAL), 0.0);
     }
 
     private static Map<String, Double> createPricing(Set<String> assortment) {
@@ -118,16 +127,20 @@ public class SupermarketSimulator {
     }
 
     private static List<CashDesk> createCashDesks(Map<String, Double> pricing, Report report) {
-        val integer = new AtomicInteger();
+        var i = 0;
         return Arrays.asList(
-            new CashDesk(integer.getAndIncrement(), pricing, report),
-            new CashDesk(integer.getAndIncrement(), pricing, report),
-            new CashDesk(integer.getAndIncrement(), pricing, report)
+            new CashDesk(i++, pricing, report),
+            new CashDesk(i++, pricing, report),
+            new CashDesk(i, pricing, report)
         );
     }
 
-    private static SupermarketAcceptor createSupermarket(List<CashDesk> desks, SupermarketRepository repository) {
-        return new Supermarket("FuzzBuzzShop", desks, repository);
+    private static SupermarketAcceptor createSupermarket(
+        Map<String, Double> pricing,
+        List<CashDesk> desks,
+        SupermarketRepository repository
+    ) {
+        return new Supermarket("FuzzBuzzShop", pricing, desks, repository);
     }
 
     private static SupermarketRepository createRepository(List<Product> products) {
@@ -136,26 +149,65 @@ public class SupermarketSimulator {
 
     private static List<Product> createProducts() {
         val products = new ArrayList<Product>();
+
+        // permissions
         ProductPermissions allowedForAll = customer -> true;
         ProductPermissions allowedForAdult = Customer::isAdult;
-        ProductDiscounts noDiscount = customer -> 1.0;
-        ProductDiscounts discountForRetired = customer -> customer.isRetired() ? 0.8 : 1.0;
-        val meta = new HashMap<String, ProductPayload>();
-        meta.put("Apple", new ProductPayload(allowedForAll, noDiscount, false));
-        meta.put("Orange", new ProductPayload(allowedForAll, noDiscount, false));
-        meta.put("Banana", new ProductPayload(allowedForAll, noDiscount, false));
-        meta.put("Bread", new ProductPayload(allowedForAll, discountForRetired, false));
-        meta.put("Butter", new ProductPayload(allowedForAll, noDiscount, false));
-        meta.put("Water", new ProductPayload(allowedForAll, discountForRetired, false));
-        meta.put("Salad", new ProductPayload(allowedForAll, noDiscount, false));
-        meta.put("IceCream", new ProductPayload(allowedForAll, noDiscount, false));
-        meta.put("Chocolate", new ProductPayload(allowedForAll, noDiscount, false));
-        meta.put("Peanut", new ProductPayload(allowedForAll, noDiscount, false));
-        meta.put("Beer", new ProductPayload(allowedForAdult, noDiscount, false));
-        meta.put("Vodka", new ProductPayload(allowedForAdult, noDiscount, false));
-        meta.put("Cigarettes", new ProductPayload(allowedForAdult, noDiscount, false));
-        meta.put("Rice", new ProductPayload(allowedForAll, noDiscount, true));
-        meta.put("Nuts", new ProductPayload(allowedForAll, noDiscount, true));
+
+        // discounts & bonuses
+        ProductDiscounts noDiscountNoBonuses = new ProductDiscounts() {
+            @Override
+            public double discountForRetired(Customer customer) {
+                return 1.0;
+            }
+
+            @Override
+            public double applyBonuses() {
+                return 0;
+            }
+        };
+        ProductDiscounts discountForRetiredNoBonuses = new ProductDiscounts() {
+            @Override
+            public double discountForRetired(Customer customer) {
+                return customer.isRetired() ? 0.8 : 1.0;
+            }
+
+            @Override
+            public double applyBonuses() {
+                return 0;
+            }
+        };
+        ProductDiscounts noDiscount20Bonuses = new ProductDiscounts() {
+            @Override
+            public double discountForRetired(Customer customer) {
+                return 1.0;
+            }
+
+            @Override
+            public double applyBonuses() {
+                return 20.0;
+            }
+        };
+
+        // meta information
+        val meta = new HashMap<String, MetaInfo>();
+        meta.put("Apple", new MetaInfo(allowedForAll, noDiscount20Bonuses, false));
+        meta.put("Orange", new MetaInfo(allowedForAll, noDiscount20Bonuses, false));
+        meta.put("Banana", new MetaInfo(allowedForAll, noDiscountNoBonuses, false));
+        meta.put("Bread", new MetaInfo(allowedForAll, discountForRetiredNoBonuses, false));
+        meta.put("Butter", new MetaInfo(allowedForAll, noDiscountNoBonuses, false));
+        meta.put("Water", new MetaInfo(allowedForAll, discountForRetiredNoBonuses, false));
+        meta.put("Salad", new MetaInfo(allowedForAll, noDiscountNoBonuses, false));
+        meta.put("IceCream", new MetaInfo(allowedForAll, noDiscountNoBonuses, false));
+        meta.put("Chocolate", new MetaInfo(allowedForAll, noDiscountNoBonuses, false));
+        meta.put("Peanut", new MetaInfo(allowedForAll, noDiscountNoBonuses, false));
+        meta.put("Beer", new MetaInfo(allowedForAdult, noDiscountNoBonuses, false));
+        meta.put("Vodka", new MetaInfo(allowedForAdult, noDiscountNoBonuses, false));
+        meta.put("Cigarettes", new MetaInfo(allowedForAdult, noDiscount20Bonuses, false));
+        meta.put("Rice", new MetaInfo(allowedForAll, noDiscountNoBonuses, true));
+        meta.put("Nuts", new MetaInfo(allowedForAll, noDiscountNoBonuses, true));
+
+        // create product list
         val range = random.getRandomInRange(MIN_ITEMS, MAX_ITEMS);
         for (int i = 0; i < range; i++) {
             val index = random.getRandomInRange(0, meta.size() - 1);
@@ -171,7 +223,7 @@ public class SupermarketSimulator {
     }
 
     @Value
-    private static class ProductPayload {
+    private static class MetaInfo {
         private final ProductPermissions permissions;
         private final ProductDiscounts discounts;
         private final boolean weighted;

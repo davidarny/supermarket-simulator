@@ -15,6 +15,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @RequiredArgsConstructor
@@ -25,6 +26,8 @@ public class Supermarket implements SupermarketController, SupermarketAcceptor {
 
     private final String name;
 
+    @Getter
+    private final Map<String, Double> pricing;
     @Getter
     private final List<CashDesk> desks;
     private final SupermarketRepository repository;

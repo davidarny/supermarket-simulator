@@ -2,6 +2,7 @@ package com.supermarket_simualtor.product;
 
 import com.supermarket_simualtor.customer.Customer;
 import lombok.Data;
+import lombok.val;
 import org.jetbrains.annotations.NotNull;
 
 @Data
@@ -49,12 +50,10 @@ public class Product implements Comparable<Product>, ProductDiscounts, ProductPe
         if (!weighted) {
             throw new NonWeightedTakeException("Cannot take some of " + name);
         }
-        try {
-            assert this.weight - weight > 0;
-            return new Product(id, name, this.weight - weight, permissions, discounts);
-        } finally {
-            this.weight = weight;
-        }
+        assert this.weight - weight > 0;
+        val next = this.weight - weight;
+        this.weight = weight;
+        return new Product(id, name, next, permissions, discounts);
     }
 
     @Override
@@ -72,5 +71,11 @@ public class Product implements Comparable<Product>, ProductDiscounts, ProductPe
     public double discountForRetired(Customer customer) {
         assert discounts != null;
         return discounts.discountForRetired(customer);
+    }
+
+    @Override
+    public double applyBonuses() {
+        assert discounts != null;
+        return discounts.applyBonuses();
     }
 }
