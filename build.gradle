@@ -22,5 +22,5 @@ dependencies {
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
 
     // https://mvnrepository.com/artifact/org.jetbrains/annotations
-    compile group: 'org.jetbrains', name: 'annotations', version: '20.0.0'
+    compile group: 'org.jetbrains', name: 'annotations', version: '20.1.0'
 }
