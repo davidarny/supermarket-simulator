@@ -19,7 +19,7 @@ dependencies {
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.36'
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.11'
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.5'
 
     // https://mvnrepository.com/artifact/org.jetbrains/annotations
     compile group: 'org.jetbrains', name: 'annotations', version: '23.0.0'
